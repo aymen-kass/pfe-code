@@ -1,0 +1,50 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div id="right-panel" class="right-panel">
+    {% include 'header.html' %}
+
+    <div class="container mt-5">
+        <div class="card shadow border-0">
+            <div class="card-header text-white" style="background-color: #1f2b46;">  <!-- Dark Blue Header -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">📚 test</h4> 
+                    <a href="{% url 'addtest' %}"><i class="fa fa-user-plus"></i>test</a>
+                    <form class="d-flex" method="get">
+                        <input type="text" name="q" class="form-control form-control-sm me-2" placeholder="🔎 Nom, prénom ou code" value="{{ query|default:'' }}">
+                        <button class="btn btn-warning btn-sm text-dark fw-bold" type="submit">Rechercher</button> <!-- Dark Yellow -->
+                    </form>
+                </div>
+            </div>
+            <div class="card-body bg-light"> <!-- Light background for contrast -->
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-dark"> <!-- Dark header -->
+                            <tr>
+                                <th scope="col">departement</th>
+                                <th scope="col">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in tests %}
+                            <tr>
+                                <td>{{ item.departement }}</td>
+                                <td>{{ item.date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        
+                    </table>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

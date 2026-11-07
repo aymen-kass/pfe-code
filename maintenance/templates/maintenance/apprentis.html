@@ -1,0 +1,710 @@
+{% extends 'base.html' %}
+{% block content %}
+
+
+<div id="right-panel" class="right-panel">
+    <!-- Header-->
+    {% include 'header.html' %}
+
+    <div class="content mt-3">
+        <div class="animated fadeIn">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <nav class="navbar navbar-light bg-light d-flex justify-content-between mb-3">
+                                <strong class="card-title">Liste des apprentis</strong>
+                                <form class="form-inline" id="search-form" action="{% url 'list_Apprentis' %}" method="get">
+                                    {% csrf_token %}
+                                
+                                    <!-- Search Input -->
+                                    <input type="text" class="form-control mr-sm-2" id="search_input" name="search" value="{{ search_query }}" placeholder="Recherche">
+                                
+                                    <!-- Statut Dropdown -->
+                                    <select name="statut" class="form-control mr-sm-2" style="border-radius: 5px;">
+                                        <option value="">Tous les statuts</option>
+                                        <option value="En Cours" {% if selected_statut == 'En Cours' %}selected{% endif %}>Demande En Cours</option>
+                                        <option value="Valide" {% if selected_statut == 'Valide' %}selected{% endif %}>Demande Validée</option>
+                                        <option value="Refusé" {% if selected_statut == 'Refusé' %}selected{% endif %}>Demande Refusée</option>
+                                        <option value="Résilié" {% if selected_statut == 'Résilié' %}selected{% endif %}>Contrat Résilié</option>
+                                        <option value="Fin du contrat" {% if selected_statut == 'Fin du contrat' %}selected{% endif %}>Fin du Contrat</option>
+                                    </select>
+                                
+                                    <!-- District Dropdown -->
+                                    {% if not request.user.district_name or request.user.username == 'admin' or request.user.username == 'Admin_SGA' %}
+                                        {% if request.user.description_dpt == "DIRECTION RESSOURCES HUMAINES" or request.user.username == 'admin' or request.user.username == 'Admin_SGA' %}
+                                        <select name="district" class="form-control mr-sm-2" style="border-radius: 5px;">
+                                            <option value="">Toutes les structures</option>
+                                            {% for district in districts %}
+                                                <option value="{{ district.id }}" {% if selected_district == district.id|stringformat:"s" %}selected{% endif %}>
+                                                    {% if district.intitule == "TIZI" %} TIZI OUZOU {% else %} {{ district.intitule }}  {% endif %}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        {% endif %}
+                                    {% endif %}
+
+                                    
+                                    <input 
+                                        type="number" 
+                                        name="year" 
+                                        class="form-control mr-sm-2" 
+                                        style="border-radius: 5px;" 
+                                        value="{{ selected_year }}" 
+                                        placeholder="Année (ex: 2025)" 
+                                        min="2000" 
+                                        max="2100">
+                                
+                                    <button class="btn my-2 my-sm-0" type="submit" style="border-radius: 5px; color: white; background-color: rgb(119, 151, 238);">
+                                        Recherche
+                                    </button>
+                                </form>
+                                
+                            </nav>
+                        </div>
+                        <div class="card-body">
+                            <table id="bootstrap-data-tabl" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        {% if not request.user.district_name or request.user.username == 'Admin_SGA' %}
+                                            {% if request.user.description_dpt == "DIRECTION RESSOURCES HUMAINES" or request.user.username == 'Admin_SGA' %}
+                                                <th>Structures</th>
+                                            {% endif %}
+                                        {% endif %}
+                                        <th>Nom/Prenom</th>
+                                        <th>Maitre Apprentissage</th>
+                                        <th>Specialite</th>
+                                        <th>Niveau d'etude</th>
+                                        <th>Contrat</th>
+                                       
+                                        
+                                        {% if request.user.departement|slice:":3" == "393" or request.user.departement == "392003" or request.user.departement == "392000" or request.user.username == "admin" or request.user.username == "Admin_SGA" or request.user.district_name and request.user.departement|slice:"3:" == "001" %}
+                                            <th>Présalaire du mois</th>
+                                        {% endif %}
+
+                                        <th>Resiliation</th>
+                                        <th>Statut</th>
+                                        
+                                        <th>Historique</th>
+                                        
+
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for apprenti in apprentis %}
+                                        <tr>
+                                            <td>
+                                                {{ apprentis.start_index|add:forloop.counter0 }}.
+                                                <a href="{% url 'profile_apprenti' apprenti.id %}">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                                {% if apprenti.transfaire %}
+                                                    <i class="fa fa-exchange text-warning" title="Transféré"></i>
+                                                {% endif %}
+                                            </td>
+                                            {% if not request.user.district_name or request.user.username == 'Admin_SGA' %}
+                                                {% if request.user.description_dpt == "DIRECTION RESSOURCES HUMAINES" or request.user.username == 'Admin_SGA' %}
+                                                    <td>
+                                                        {% if apprenti.district.intitule == "TIZI" %} TIZI OUZOU {% else %} {{ apprenti.district }}  {% endif %}
+                                                    </td>
+                                                {% endif %}
+                                            {% endif %}
+                                            <td>{{ apprenti.nom }} {{ apprenti.prenom }}</td>
+                                            <td>{{ apprenti.profile }}</td>
+                                            {% if apprenti.specialite %}
+                                                <td>{{ apprenti.specialite }}</td>
+                                                {% else %}
+                                                <td>None</td>
+                                            {% endif %}
+                                            <td>{{ apprenti.niveau_d_etude }}</td>
+                                            <td> 
+                                                {% if apprenti.contrat %}
+                                                    <!-- Link to the contract file -->
+                                                    <a href="{{ apprenti.contrat.fichier.url }}" target="_blank" title="Voir le contrat">
+                                                        <i class="fa fa-file-contract"></i>
+                                                    </a>
+                                            
+                                                    {% with avenant=apprenti.contrat.avenant_set.first %}
+                                                        {% if avenant and avenant.fichier %}
+                                                            <!-- Avenant file exists: link to download/print -->
+                                                            <a href="{{ avenant.fichier.url }}" target="_blank" title="Voir l'avenant">
+                                                                <i class="fa fa-file-signature"></i>
+                                                            </a>
+                                                        {% else %}
+                                                            <!-- No avenant yet: show add icon -->
+                                                            {% if apprenti.statut == 'Valide' or apprenti.statut == 'Fin du contrat' %}
+                                                                {% if request.user.departement|slice:":3" == "393" or request.user.username == "admin" or request.user.username == "Admin_SGA" or request.user.departement and request.user.departement|slice:"3:" == "001" %}
+                                                                    
+                                                                    <a href="{% url 'add_avenant' apprenti.contrat.id %}" title="Ajouter Avenant">
+                                                                        <i class="fa fa-plus-circle"></i>
+                                                                    
+                                                                    </a>
+                                                                {% else %}
+                                                                    <i class="fa fa-ban"></i>
+                                                                {% endif %}
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endwith %}
+                                            
+                                                {% else %}
+                                                    {% if apprenti.statut == 'Valide' or apprenti.statut == 'Fin du contrat' %}
+                                                        {% if request.user.departement|slice:":3" == "393" or request.user.username == "admin" or request.user.username == "Admin_SGA" or request.user.district_name and request.user.departement|slice:"3:" == "001" %}
+                                                            <a href="{% url 'add_contrat' apprenti.id %}"><i class="fa fa-edit"></i></a>
+                                                        {% else %}
+                                                            <i class="fa fa-ban"></i>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <i class="fa fa-ban"></i>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+                                            
+                                            {% if request.user.departement|slice:":3" == "393" or request.user.departement == "392003" or request.user.departement == "392000" or request.user.username == "admin" or request.user.username == "Admin_SGA" or request.user.district_name and request.user.departement|slice:"3:" == "001" %}
+                                            <td>
+                                            {% if apprenti.code_apprenti %}
+                                            {% if apprenti.contrat %}
+                                            {% if apprenti.statut == 'Valide'%}
+                                                {% if  mois == "1" %}
+                                                    {% if apprenti.salair_annee.last.janvier %}
+                                                        {{ apprenti.salair_annee.last.janvier }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %} 
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="1"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "2" %}
+                                                    {% if apprenti.salair_annee.last.fevrier %}
+                                                        {{ apprenti.salair_annee.last.fevrier }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="2"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "3" %}
+                                                    {% if apprenti.salair_annee.last.mars %}
+                                                        {{ apprenti.salair_annee.last.mars }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="3"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "4" %}
+                                                    {% if apprenti.salair_annee.last.avril %}
+                                                        {{ apprenti.salair_annee.last.avril }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                        <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                            data-toggle="modal" data-target="#ModifierSalaire"
+                                                            data-mois="4"
+                                                            data-id="{{ apprenti.id }}">
+                                                            <i class="fa fa-edit"></i>
+                                                        </a>
+                                                        {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "5" %}
+                                                    {% if apprenti.salair_annee.last.mai %}
+                                                        {{ apprenti.salair_annee.last.mai }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="5"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "6" %}
+                                                    {% if apprenti.salair_annee.last.juin  %}
+                                                        {{ apprenti.salair_annee.last.juin  }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="6"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "7" %}
+                                                    {% if apprenti.salair_annee.last.juillet %}
+                                                        {{ apprenti.salair_annee.last.juillet }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="7"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "8" %}
+                                                    {% if apprenti.salair_annee.last.août %}
+                                                        {{ apprenti.salair_annee.last.août }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="8"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "9" %}
+                                                    {% if apprenti.salair_annee.last.septembre %}
+                                                        {{ apprenti.salair_annee.last.septembre }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="9"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "10" %} 
+                                                    {% if apprenti.salair_annee.last.octobre %}
+                                                        {{ apprenti.salair_annee.last.octobre }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="10"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "11" %} 
+                                                    {% if apprenti.salair_annee.last.novembre %}
+                                                        {{ apprenti.salair_annee.last.novembre }}
+                                                    {% else %}
+
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="11"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+
+                                                {% if  mois == "12" %}
+                                                    {% if apprenti.salair_annee.last.decembre %}
+                                                        {{ apprenti.salair_annee.last.decembre }}
+                                                    {% else %}
+                                                    {% if request.user.departement != "392003" %}
+                                                    <a href="#" class="btn btn-success btn-sm edit_salair-btn" 
+                                                        data-toggle="modal" data-target="#ModifierSalaire"
+                                                        data-mois="12"
+                                                        data-id="{{ apprenti.id }}">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    {% else %}
+                                                        <i class="fa fa-ban" ></i>
+                                                    {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+                                                {% else %}
+                                                    <i class="fa fa-ban"></i>
+                                                {% endif %}
+
+                                                {% else %}
+                                                    <i class="fa fa-ban"></i>
+                                                {% endif %}
+
+                                            {% else %}
+                                                        <!-- ❌ No matricule → force add -->
+                                                        {% if apprenti.statut == 'Valide' %}
+                                                        <a href="{% url 'profile_apprenti' apprenti.id %}"
+                                                            class="btn btn-matricule"
+                                                            title="Ajouter le matricule de l’apprenti">
+                                                                <i class="fa fa-id-card me-2"></i>
+                                                                + Matricule
+                                                        </a>
+                                                        {% else %}
+                                                        <i class="fa fa-ban"></i>
+                                                        {% endif %}
+
+
+                                            {% endif %}
+                                            </td>
+
+
+
+                                            {% endif %}
+
+
+                                            <td>
+                                        
+                                                {% if not apprenti.resiliation %}
+                                                    {% if apprenti.statut == 'Valide'%}
+                                                        {% if request.user.departement|slice:":3" == "393" or request.user.username == "admin" or request.user.username == "Admin_SGA" or request.user.district_name and request.user.departement|slice:"3:" == "001" %}
+                                                            {% if apprenti.contrat %}    
+                                                                <a href="{% url 'resiliation' apprenti.id %}" class="btn btn-danger btn-sm">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            {% else %}
+                                                                <i class="fa fa-ban"></i>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <i class="fa fa-ban"></i>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <i class="fa fa-ban"></i>
+                                                    {% endif %}
+                                                {% else %}
+                                                    {% if apprenti.resiliation.fichier %}
+                                                        <a href="{{ apprenti.resiliation.fichier.url }}"><i class="fa fa-list"></i></a>
+                                                        {% else %}
+                                                        <i class="fa fa-ban"></i>
+                                                    {% endif %}
+                                                {% endif %}
+                                                
+                                            </td>
+                                            <td>
+                                                {% if apprenti.statut == 'Fin du contrat' %}
+                                                    {% if apprenti.pfe %}
+                                                        <a href="{{ apprenti.pfe.url }}" target="_blank" style="color: #4dabf7; font-weight: bold;">Voir le PFE</a>
+                                                        <br>
+                                                        <small><strong style="color: #4dabf7;">Note:</strong> {{ apprenti.note_pfe }}/20</small>
+                                                    {% else %}
+                                                    {% if request.user.departement|slice:":3" == "393" or request.user.username == "admin" or request.user.username == "Admin_SGA" or request.user.district_name and request.user.departement|slice:"3:" == "001" %}
+                                                            <a href="{% url 'ajouter_pfe' apprenti.id %}" style="color: #4dabf7; font-weight: bold;">Ajouter PFE</a>
+                                                        {% else %}
+                                                            <i style="color: #4dabf7; font-weight: bold;">Fin du contrat</i>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% else %}
+                                                    <strong
+                                                        {% if apprenti.statut == 'En Cours' %}
+                                                            style="color: #ffe066;"
+                                                        {% elif apprenti.statut == 'Valide' %}
+                                                            style="color: #51cf66;"
+                                                        {% elif apprenti.statut == 'Refusé' %}
+                                                            style="color: #ff6b6b;"
+                                                        {% elif apprenti.statut == 'Résilié' %}
+                                                            style="color: #ff922b;"
+                                                        {% endif %}
+                                                    >
+                                                        {% if apprenti.statut == 'Refusé' %}
+                                                            {{ apprenti.statut }} 
+                                                            
+                                                            <a href="{% url 'refuse_to_encours' apprenti.id %}"
+                                                                onclick="return confirm('⚠️ Attention : cette action réinitialisera la demande.\n\nLe statut de l’apprenti repassera à « En cours » et sera soumis à une nouvelle validation par la DRH.\n\nVoulez-vous continuer ?');">
+                                                                <i class="fas fa-redo"></i>
+                                                            </a>
+
+                                                            {% if request.user.username == "Admin_SGA" or request.user.departement == "392003" %}
+                                                            <a href="{% url 'delete_refuse' apprenti.id %}"
+                                                                class="text-danger fw-bold d-inline-flex align-items-center gap-1"
+                                                                style="text-decoration: none;"
+                                                                onclick="return confirm('⛔ SUPPRESSION DÉFINITIVE ⛔\n\nCet apprenti sera SUPPRIMÉ définitivement de la base de données.\n\n❌ Aucune récupération possible.\n\nConfirmer la suppression ?');">
+
+                                                                <i class="fas fa-trash-alt text-danger"></i>
+                                                                <!-- <span class="text-danger text-uppercase">Supprimer</span> -->
+                                                            </a>
+
+                                                            {% endif %}
+
+                                                        {% else %}
+                                                        <span class="fw-semibold">
+                                                            {{ apprenti.statut }}
+                                                        </span>
+                                                        
+                                                        {% if apprenti.statut == "En Cours" and apprenti.dir_naftal %}
+                                                            <span class="dir-validated-mini ms-1">
+                                                                <i class="fa fa-check-circle"></i>
+                                                                Dir validée
+                                                            </span>
+                                                        {% endif %}
+                                                        
+                                                        {% endif %}
+                                                    </strong>
+                                                {% endif %}
+                                            </td> 
+
+                                            
+                                                <!-- <td class="text-center">
+                                                    <a href="#" 
+                                                    class="text-primary"
+                                                    data-toggle="modal" 
+                                                    data-target="#HistoriqueModal{{ apprenti.id }}" 
+                                                    title="Voir l'historique des actions">
+                                                    <i class="fa fa-history fa-lg"></i>
+                                                    </a>
+                                                </td> -->
+                                                <td class="text-center">
+                                                    <a href="#" class="btn btn-info btn-sm" 
+                                                       data-toggle="modal" data-target="#Historique{{ apprenti.id }}">
+                                                      <i class="fa fa-history"></i>
+                                                    </a>
+                                                  </td>
+                                                  
+                                                  
+                                                  
+                                            
+
+
+                                            <!-- <td
+                                                {% if apprenti.statut == 'En Cours' %}
+                                                    style="background-color: #ffe066;"  {# Vibrant Yellow #}
+                                                {% elif apprenti.statut == 'Valide' %}
+                                                    style="background-color: #51cf66;"  {# Vibrant Green #}
+                                                {% elif apprenti.statut == 'Refusé' %}
+                                                    style="background-color: #ff6b6b;"  {# Vibrant Red #}
+                                                {% elif apprenti.statut == 'Résilié' %}
+                                                    style="background-color: #ff922b;"  {# Vibrant Orange #}
+                                                {% elif apprenti.statut == 'Fin du contrat' %}
+                                                    style="background-color: #4dabf7;"  {# Vibrant Blue #}
+                                                {% endif %}
+                                            >
+                                                {% if apprenti.statut == 'Fin du contrat' %}
+                                                    {% if apprenti.pfe %}
+                                                        <a href="{{ apprenti.pfe.url }}" target="_blank" style="color: white; font-weight: bold;">Voir le PFE</a>
+                                                        <br>
+                                                        <small style="color: white;"><strong>Note:</strong> {{ apprenti.note_pfe }}/20</small>
+                                                    {% else %}
+                                                        <a href="{% url 'ajouter_pfe' apprenti.id %}" style="color: white; font-weight: bold;">Ajouter PFE</a>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <strong style="color: white;">{{ apprenti.statut }}</strong>
+                                                {% endif %}
+                                            </td> -->
+
+                                            
+                                        </tr>
+                                        
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="10" class="text-center">Aucun apprenti trouvé.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            
+                            <div aria-label="...">
+                                {% with request.GET.urlencode as query_string %}
+                                <ul class="pagination justify-content-center">
+                                    {% if apprentis.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{{ query_string|safe }}&page={{ apprentis.previous_page_number }}">&#10094; Précédent</a>
+                                        </li>
+                                    {% endif %}
+
+                                    {% with total_pages=paginator.num_pages current_page=apprentis.number window=2 %}
+                                        {% if total_pages > 1 %}
+                                            
+                                            {# Show first page and leading dots if needed #}
+                                            {% if current_page > window|add:"2" %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?{{ query_string|safe }}&page=1">1</a>
+                                                </li>
+                                                {% if current_page > window|add:"3" %}
+                                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                                {% endif %}
+                                            {% endif %}
+
+                                            {# Middle range pages #}
+                                            {% for i in paginator.page_range %}
+                                                {% if i >= current_page|add:"-2" and i <= current_page|add:"2" %}
+                                                    {% if apprentis.number == i %}
+                                                        <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                                                    {% else %}
+                                                        <li class="page-item"><a class="page-link" href="?{{ query_string|safe }}&page={{ i }}">{{ i }}</a></li>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+
+                                            {# Show last page and trailing dots if needed #}
+                                            {% if current_page < total_pages|add:"-3" %}
+                                                {% if current_page < total_pages|add:"-2" %}
+                                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                                {% endif %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?{{ query_string|safe }}&page={{ total_pages }}">{{ total_pages }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endwith %}
+
+                                    {% if apprentis.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{{ query_string|safe }}&page={{ apprentis.next_page_number }}">Suivant &#10095;</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                                {% endwith %}
+
+
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modifier Apprenti Modal -->
+<div class="modal fade" id="ModifierSalaire" tabindex="-1" role="dialog" aria-labelledby="ModifierSalaireLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ModifierSalaireLabel">Ajouter Salaire</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="modifier-Salaire-form" method="POST">
+                    <meta name="csrf-token" content="{{ csrf_token }}">
+                    {% csrf_token %}
+                    <input  type="hidden" id="apprenti-id" name="apprenti_id">
+                    <input  type="hidden" id="mois" name="mois">
+                    
+                    <div class="form-group">
+                        <label for="edit-Salaire">salaire du mois </label>
+                        <input type="text" class="form-control" id="edit-Salaire" name="name_salaire" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+  {% for apprenti in apprentis %}
+  <div class="modal fade" id="Historique{{ apprenti.id }}" tabindex="-1" role="dialog" aria-labelledby="HistoriqueLabel{{ apprenti.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+      <div class="modal-content shadow-lg border-0 rounded-3">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title fw-bold" id="HistoriqueLabel{{ apprenti.id }}">
+            <i class="fa fa-history me-2"></i> Historique — {{ apprenti.nom }} {{ apprenti.prenom }}
+          </h5>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer" onclick="location.reload();">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+  
+        <div class="modal-body p-3">
+          {% if apprenti.historiques.all %}
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-center">
+                  <tr>
+                    <th>📅 Date</th>
+                    <th>👤 Utilisateur</th>
+                    <th>⚙️ Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for h in apprenti.historiques.all %}
+                  <tr class="text-center">
+                    <td><span class="badge bg-secondary text-white">{{ h.date_action|date:"d/m/Y H:i" }}</span></td>
+                    <td>{% if h.user %}{{ h.user.username }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                    <td class="text-start">
+                      <span class="action-badge {{ h.action|lower|cut:" " }}">
+                        {{ h.action }}
+                      </span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center text-muted my-3">
+              <i class="fa fa-info-circle fa-2x mb-2"></i>
+              <p class="mb-0">Aucun historique trouvé pour cet apprenti.</p>
+            </div>
+          {% endif %}
+        </div>
+  
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-dismiss="modal"  onclick="location.reload();">
+            <i class="fa fa-times me-1"></i> Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  
+
+{% block scripts %}
+
+{% endblock scripts %}
+  
+
+  
+{% endblock %}
+
+
+
